@@ -90,10 +90,25 @@ impl<'a> VirtualEnv<'a> {
     /// Create a Python virtual environment with the given name.
     ///
     /// This creates a new environment or reuses an existing one.
+    ///
+    /// This will try to build a path based on the following environment variables:
+    ///
+    /// - `CARGO_TARGET_DIR`
+    /// - `CARGO_MANIFEST_DIR`
+    /// - `OUT_DIR`
+    ///
+    /// If none of these are set it will use `/tmp`.
     pub fn new(shell: &'a Shell, name: &str) -> Result<VirtualEnv<'a>> {
         let venv_dir = find_directory(name);
 
-        create_venv(shell, &venv_dir)?;
+        Self::with_path(shell, &venv_dir)
+    }
+
+    /// Create a Python virtual environment in the given path.
+    ///
+    /// This creates a new environment or reuses an existing one.
+    pub fn with_path(shell: &'a Shell, venv_dir: &Path) -> Result<VirtualEnv<'a>> {
+        create_venv(shell, venv_dir)?;
 
         let path = env::var("PATH").unwrap_or_else(|_| "/bin:/usr/bin".to_string());
         let path = format!("{}/bin:{}", venv_dir.display(), path);
