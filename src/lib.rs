@@ -1,4 +1,4 @@
-//! xshell_venv manages your Python virtual environments in code.
+//! xshell-venv manages your Python virtual environments in code.
 //!
 //! This is an extension to [xshell], the swiss-army knife for writing cross-platform “bash” scripts in Rust.
 //!

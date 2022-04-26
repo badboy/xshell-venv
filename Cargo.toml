@@ -2,6 +2,9 @@
 name = "xshell-venv"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "xshell-venv manages your Python virtual environments in code."
+repository = "https://github.com/badboy/xshell-venv"
 
 [dependencies]
 xshell = "0.2"
