@@ -155,4 +155,9 @@ impl<'a> VirtualEnv<'a> {
 
         py.stdin(code).read()
     }
+
+    pub fn run_module(&self, module: &str, args: &[&str]) -> Result<String> {
+        let py = cmd!(self.shell, "python -m {module} {args...}");
+        py.read()
+    }
 }
