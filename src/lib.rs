@@ -10,7 +10,7 @@
 //! use xshell;
 //! use xshell_venv::VirtualEnv;
 //!
-//! # fn main() -> xshell::Result<()> {
+//! # fn main() -> xshell_venv::Result<()> {
 //! let sh = xshell::Shell::new()?;
 //! let venv = VirtualEnv::new(&sh, "py3")?;
 //!
@@ -19,10 +19,14 @@
 //! # }
 //! ```
 
+mod error;
+
 use std::env;
 use std::path::{Path, PathBuf};
 
-use xshell::{cmd, PushEnv, Result, Shell};
+use xshell::{cmd, PushEnv, Shell};
+
+pub use error::{Error, Result};
 
 /// A Python virtual environment.
 ///
@@ -41,7 +45,7 @@ use xshell::{cmd, PushEnv, Result, Shell};
 /// use xshell;
 /// use xshell_venv::VirtualEnv;
 ///
-/// # fn main() -> xshell::Result<()> {
+/// # fn main() -> xshell_venv::Result<()> {
 /// let sh = xshell::Shell::new()?;
 /// let venv = VirtualEnv::new(&sh, "py3")?;
 ///
@@ -54,7 +58,7 @@ pub struct VirtualEnv<'a> {
     _env: Vec<PushEnv<'a>>,
 }
 
-fn create_venv(sh: &Shell, path: &Path) -> Result<()> {
+fn create_venv(sh: &Shell, path: &Path) -> Result<(), Error> {
     let pybin = path.join("bin").join("python");
     if !pybin.exists() {
         cmd!(sh, "python -m venv {path}").run()?;
@@ -78,7 +82,10 @@ fn find_directory(name: &str) -> PathBuf {
         // Putting it there also means the venv stays available across builds.
         if let Ok(out_dir) = env::var("OUT_DIR") {
             let path = Path::new(&out_dir);
-            let path = path.parent().and_then(|p| p.parent()).and_then(|p| p.parent());
+            let path = path
+                .parent()
+                .and_then(|p| p.parent())
+                .and_then(|p| p.parent());
             if let Some(out_dir) = path {
                 break PathBuf::from(out_dir);
             }
@@ -126,13 +133,13 @@ impl<'a> VirtualEnv<'a> {
     /// ```
     /// # use xshell;
     /// # use xshell_venv::VirtualEnv;
-    /// # fn main() -> xshell::Result<()> {
+    /// # fn main() -> xshell_venv::Result<()> {
     /// let sh = xshell::Shell::new()?;
     /// let venv = VirtualEnv::new(&sh, "py3")?;
     /// # Ok(())
     /// # }
     /// ```
-    pub fn new(shell: &'a Shell, name: &str) -> Result<VirtualEnv<'a>> {
+    pub fn new(shell: &'a Shell, name: &str) -> Result<VirtualEnv<'a>, Error> {
         let venv_dir = find_directory(name);
 
         Self::with_path(shell, &venv_dir)
@@ -147,7 +154,7 @@ impl<'a> VirtualEnv<'a> {
     /// ```rust
     /// # use xshell;
     /// # use xshell_venv::VirtualEnv;
-    /// # fn main() -> xshell::Result<()> {
+    /// # fn main() -> xshell_venv::Result<()> {
     /// let sh = xshell::Shell::new()?;
     ///
     /// let mut dir = std::env::temp_dir();
@@ -159,7 +166,7 @@ impl<'a> VirtualEnv<'a> {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn with_path(shell: &'a Shell, venv_dir: &Path) -> Result<VirtualEnv<'a>> {
+    pub fn with_path(shell: &'a Shell, venv_dir: &Path) -> Result<VirtualEnv<'a>, Error> {
         create_venv(shell, venv_dir)?;
 
         let path = env::var("PATH").unwrap_or_else(|_| "/bin:/usr/bin".to_string());
@@ -184,7 +191,7 @@ impl<'a> VirtualEnv<'a> {
     /// ```rust,ignore
     /// # use xshell;
     /// # use xshell_venv::VirtualEnv;
-    /// # fn main() -> xshell::Result<()> {
+    /// # fn main() -> xshell_venv::Result<()> {
     /// let sh = xshell::Shell::new()?;
     /// let venv = VirtualEnv::new(&sh, "py3")?;
     ///
@@ -210,7 +217,7 @@ impl<'a> VirtualEnv<'a> {
     /// ```rust,ignore
     /// # use xshell;
     /// # use xshell_venv::VirtualEnv;
-    /// # fn main() -> xshell::Result<()> {
+    /// # fn main() -> xshell_venv::Result<()> {
     /// let sh = xshell::Shell::new()?;
     /// let venv = VirtualEnv::new(&sh, "py3")?;
     ///
@@ -238,7 +245,7 @@ impl<'a> VirtualEnv<'a> {
     /// ```
     /// # use xshell;
     /// # use xshell_venv::VirtualEnv;
-    /// # fn main() -> xshell::Result<()> {
+    /// # fn main() -> xshell_venv::Result<()> {
     /// let sh = xshell::Shell::new()?;
     /// let venv = VirtualEnv::new(&sh, "py3")?;
     ///
@@ -250,7 +257,7 @@ impl<'a> VirtualEnv<'a> {
     pub fn run(&self, code: &str) -> Result<String> {
         let py = cmd!(self.shell, "python");
 
-        py.stdin(code).read()
+        Ok(py.stdin(code).read()?)
     }
 
     /// Run library module as a script.
@@ -263,7 +270,7 @@ impl<'a> VirtualEnv<'a> {
     /// ```
     /// # use xshell;
     /// # use xshell_venv::VirtualEnv;
-    /// # fn main() -> xshell::Result<()> {
+    /// # fn main() -> xshell_venv::Result<()> {
     /// let sh = xshell::Shell::new()?;
     /// let venv = VirtualEnv::new(&sh, "py3")?;
     ///
@@ -274,6 +281,6 @@ impl<'a> VirtualEnv<'a> {
     /// ```
     pub fn run_module(&self, module: &str, args: &[&str]) -> Result<String> {
         let py = cmd!(self.shell, "python -m {module} {args...}");
-        py.read()
+        Ok(py.read()?)
     }
 }
