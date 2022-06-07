@@ -37,7 +37,7 @@ use xshell::{cmd, PushEnv, Result, Shell};
 ///
 /// ## Example
 ///
-/// ```rust,no_run
+/// ```rust
 /// use xshell;
 /// use xshell_venv::VirtualEnv;
 ///
@@ -118,6 +118,20 @@ impl<'a> VirtualEnv<'a> {
     /// - `CARGO_MANIFEST_DIR`
     ///
     /// _<sup>1</sup> should usually be the crate's/workspace's target directory._
+    ///
+    /// If none of these are set it will use the system's temporary directory, e.g. `/tmp`.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// # use xshell;
+    /// # use xshell_venv::VirtualEnv;
+    /// # fn main() -> xshell::Result<()> {
+    /// let sh = xshell::Shell::new()?;
+    /// let venv = VirtualEnv::new(&sh, "py3")?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn new(shell: &'a Shell, name: &str) -> Result<VirtualEnv<'a>> {
         let venv_dir = find_directory(name);
 
@@ -127,6 +141,24 @@ impl<'a> VirtualEnv<'a> {
     /// Create a Python virtual environment in the given path.
     ///
     /// This creates a new environment or reuses an existing one.
+    ///
+    /// ## Example
+    ///
+    /// ```rust
+    /// # use xshell;
+    /// # use xshell_venv::VirtualEnv;
+    /// # fn main() -> xshell::Result<()> {
+    /// let sh = xshell::Shell::new()?;
+    ///
+    /// let mut dir = std::env::temp_dir();
+    /// dir.push("xshell-py3");
+    /// let venv = VirtualEnv::with_path(&sh, &dir)?;
+    ///
+    /// let output = venv.run("print('hello python')")?;
+    /// assert_eq!("hello python", output);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn with_path(shell: &'a Shell, venv_dir: &Path) -> Result<VirtualEnv<'a>> {
         create_venv(shell, venv_dir)?;
 
@@ -142,20 +174,104 @@ impl<'a> VirtualEnv<'a> {
     }
 
     /// Install a Python package in this virtual environment.
+    ///
+    /// The package can be anything `pip` accepts,
+    /// including specifying the version (`$name==1.0.0`)
+    /// or repositories (`git+https://github.com/$name/$repo@branch#egg=$name`).
+    ///
+    /// ## Example
+    ///
+    /// ```rust,ignore
+    /// # use xshell;
+    /// # use xshell_venv::VirtualEnv;
+    /// # fn main() -> xshell::Result<()> {
+    /// let sh = xshell::Shell::new()?;
+    /// let venv = VirtualEnv::new(&sh, "py3")?;
+    ///
+    /// venv.pip_install("flake8")?;
+    /// let output = venv.run_module("flake8", &["--version"])?;
+    /// assert!(output.contains("flake"));
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn pip_install(&self, package: &str) -> Result<()> {
         cmd!(self.shell, "pip install {package}").run()?;
+        Ok(())
+    }
+
+    /// Upgrade a Python package in this virtual environment.
+    ///
+    /// The package can be anything `pip` accepts,
+    /// including specifying the version (`$name==1.0.0`)
+    /// or repositories (`git+https://github.com/$name/$repo@branch#egg=$name`).
+    ///
+    /// ## Example
+    ///
+    /// ```rust,ignore
+    /// # use xshell;
+    /// # use xshell_venv::VirtualEnv;
+    /// # fn main() -> xshell::Result<()> {
+    /// let sh = xshell::Shell::new()?;
+    /// let venv = VirtualEnv::new(&sh, "py3")?;
+    ///
+    /// venv.pip_install("flake8==3.0.0")?;
+    /// let output = venv.run_module("flake8", &["--version"])?;
+    /// assert!(output.contains("3.0.0"));
+    ///
+    /// venv.pip_upgrade("flake8")?;
+    /// let output = venv.run_module("flake8", &["--version"])?;
+    /// assert!(!output.contains("3.0.0"));
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn pip_upgrade(&self, package: &str) -> Result<()> {
+        cmd!(self.shell, "pip install --upgrade {package}").run()?;
         Ok(())
     }
 
     /// Run Python code in this virtual environment.
     ///
     /// Returns the code's output.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// # use xshell;
+    /// # use xshell_venv::VirtualEnv;
+    /// # fn main() -> xshell::Result<()> {
+    /// let sh = xshell::Shell::new()?;
+    /// let venv = VirtualEnv::new(&sh, "py3")?;
+    ///
+    /// let output = venv.run("print('hello python')")?;
+    /// assert_eq!("hello python", output);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn run(&self, code: &str) -> Result<String> {
         let py = cmd!(self.shell, "python");
 
         py.stdin(code).read()
     }
 
+    /// Run library module as a script.
+    ///
+    /// This is `python -m $module`.
+    /// Additional arguments are passed through as is.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// # use xshell;
+    /// # use xshell_venv::VirtualEnv;
+    /// # fn main() -> xshell::Result<()> {
+    /// let sh = xshell::Shell::new()?;
+    /// let venv = VirtualEnv::new(&sh, "py3")?;
+    ///
+    /// let output = venv.run_module("pip", &["--version"])?;
+    /// assert!(output.contains("pip"));
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn run_module(&self, module: &str, args: &[&str]) -> Result<String> {
         let py = cmd!(self.shell, "python -m {module} {args...}");
         py.read()
