@@ -58,10 +58,38 @@ pub struct VirtualEnv<'a> {
     _env: Vec<PushEnv<'a>>,
 }
 
+fn guess_python(sh: &Shell) -> Result<&'static str, Error> {
+    #[cfg(windows)]
+    {
+        if cmd!(sh, "python3.exe --version").run().is_ok() {
+            return Ok("python3.exe");
+        }
+
+        if let Ok(output) = cmd!(sh, "python.exe --version").read() {
+            if output.contains("Python 3.") {
+                return Ok("python.exe");
+            }
+        }
+    }
+
+    if cmd!(sh, "python3 --version").run().is_ok() {
+        return Ok("python3");
+    }
+
+    if let Ok(output) = cmd!(sh, "python --version").read() {
+        if output.contains("Python 3.") {
+            return Ok("python");
+        }
+    }
+
+    Err("couldn't find Python 3 in $PATH".into())
+}
+
 fn create_venv(sh: &Shell, path: &Path) -> Result<(), Error> {
     let pybin = path.join("bin").join("python");
     if !pybin.exists() {
-        cmd!(sh, "python -m venv {path}").run()?;
+        let python = guess_python(sh)?;
+        cmd!(sh, "{python} -m venv {path}").run()?;
     }
     Ok(())
 }
