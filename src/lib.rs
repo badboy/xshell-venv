@@ -64,21 +64,39 @@ fn create_venv(sh: &Shell, path: &Path) -> Result<()> {
 
 fn find_directory(name: &str) -> PathBuf {
     let mut venv_dir = loop {
+        // May be set by the user.
         if let Ok(target_dir) = env::var("CARGO_TARGET_DIR") {
             break PathBuf::from(target_dir);
         }
 
+        // Find the `target/<arch>?/<profile> directory.`
+        // `OUT_DIR` is usually something like
+        // target/<arch>/debug/build/$cratename-$hash/out/,
+        // so we strip out the last 3 ancestors.
+        // This will be correct for plain crates, for workspaces
+        // and even if the `TARGET_DIR` is not nested within the workspace.
+        // Putting it there also means the venv stays available across builds.
+        if let Ok(out_dir) = env::var("OUT_DIR") {
+            let path = Path::new(&out_dir);
+            let path = path.parent().and_then(|p| p.parent()).and_then(|p| p.parent());
+            if let Some(out_dir) = path {
+                break PathBuf::from(out_dir);
+            }
+        }
+
+        // Create a `target/$venv` path next to where the project's `Cargo.toml` is located.
+        // That will create an occasional `target` directory, when none existed before,
+        // but I have no idea in what case `CARGO_MANIFEST_DIR` would be set
+        // but `OUT_DIR` isn't.
         if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
             let mut p = PathBuf::from(manifest_dir);
             p.push("target");
             break p;
         }
 
-        if let Ok(out_dir) = env::var("OUT_DIR") {
-            break PathBuf::from(out_dir);
-        }
-
-        break PathBuf::from("/tmp");
+        // As a last resort we use the host's temporary directory,
+        // so something like `/tmp`.
+        break env::temp_dir();
     };
 
     let name = format!("venv-{name}");
@@ -90,14 +108,16 @@ impl<'a> VirtualEnv<'a> {
     /// Create a Python virtual environment with the given name.
     ///
     /// This creates a new environment or reuses an existing one.
+    /// Preserves the environment across calls and makes it available for all other commands
+    /// within the same [`xshell::Shell`].
     ///
     /// This will try to build a path based on the following environment variables:
     ///
     /// - `CARGO_TARGET_DIR`
+    /// - `OUT_DIR` 3 levels up<sup>1</sup>
     /// - `CARGO_MANIFEST_DIR`
-    /// - `OUT_DIR`
     ///
-    /// If none of these are set it will use `/tmp`.
+    /// _<sup>1</sup> should usually be the crate's/workspace's target directory._
     pub fn new(shell: &'a Shell, name: &str) -> Result<VirtualEnv<'a>> {
         let venv_dir = find_directory(name);
 
