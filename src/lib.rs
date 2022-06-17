@@ -7,11 +7,10 @@
 //! ## Example
 //!
 //! ```rust
-//! use xshell;
-//! use xshell_venv::VirtualEnv;
+//! use xshell_venv::{Shell, VirtualEnv};
 //!
 //! # fn main() -> xshell_venv::Result<()> {
-//! let sh = xshell::Shell::new()?;
+//! let sh = Shell::new()?;
 //! let venv = VirtualEnv::new(&sh, "py3")?;
 //!
 //! venv.run("print('Hello World!')")?; // "Hello World!"
@@ -24,7 +23,8 @@ mod error;
 use std::env;
 use std::path::{Path, PathBuf};
 
-use xshell::{cmd, PushEnv, Shell};
+pub use xshell::Shell;
+use xshell::{cmd, PushEnv};
 
 pub use error::{Error, Result};
 
@@ -180,10 +180,9 @@ impl<'a> VirtualEnv<'a> {
     /// ## Example
     ///
     /// ```rust
-    /// # use xshell;
-    /// # use xshell_venv::VirtualEnv;
+    /// # use xshell_venv::{Shell, VirtualEnv};
     /// # fn main() -> xshell_venv::Result<()> {
-    /// let sh = xshell::Shell::new()?;
+    /// let sh = Shell::new()?;
     ///
     /// let mut dir = std::env::temp_dir();
     /// dir.push("xshell-py3");
@@ -217,10 +216,9 @@ impl<'a> VirtualEnv<'a> {
     /// ## Example
     ///
     /// ```rust,ignore
-    /// # use xshell;
-    /// # use xshell_venv::VirtualEnv;
+    /// # use xshell_venv::{Shell, VirtualEnv};
     /// # fn main() -> xshell_venv::Result<()> {
-    /// let sh = xshell::Shell::new()?;
+    /// let sh = Shell::new()?;
     /// let venv = VirtualEnv::new(&sh, "py3")?;
     ///
     /// venv.pip_install("flake8")?;
@@ -243,10 +241,9 @@ impl<'a> VirtualEnv<'a> {
     /// ## Example
     ///
     /// ```rust,ignore
-    /// # use xshell;
-    /// # use xshell_venv::VirtualEnv;
+    /// # use xshell_venv::{Shell, VirtualEnv};
     /// # fn main() -> xshell_venv::Result<()> {
-    /// let sh = xshell::Shell::new()?;
+    /// let sh = Shell::new()?;
     /// let venv = VirtualEnv::new(&sh, "py3")?;
     ///
     /// venv.pip_install("flake8==3.0.0")?;
@@ -271,10 +268,9 @@ impl<'a> VirtualEnv<'a> {
     /// ## Example
     ///
     /// ```
-    /// # use xshell;
-    /// # use xshell_venv::VirtualEnv;
+    /// # use xshell_venv::{Shell, VirtualEnv};
     /// # fn main() -> xshell_venv::Result<()> {
-    /// let sh = xshell::Shell::new()?;
+    /// let sh = Shell::new()?;
     /// let venv = VirtualEnv::new(&sh, "py3")?;
     ///
     /// let output = venv.run("print('hello python')")?;
@@ -296,10 +292,9 @@ impl<'a> VirtualEnv<'a> {
     /// ## Example
     ///
     /// ```
-    /// # use xshell;
-    /// # use xshell_venv::VirtualEnv;
+    /// # use xshell_venv::{Shell, VirtualEnv};
     /// # fn main() -> xshell_venv::Result<()> {
-    /// let sh = xshell::Shell::new()?;
+    /// let sh = Shell::new()?;
     /// let venv = VirtualEnv::new(&sh, "py3")?;
     ///
     /// let output = venv.run_module("pip", &["--version"])?;

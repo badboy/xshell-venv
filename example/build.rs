@@ -1,5 +1,4 @@
-use xshell::Shell;
-use xshell_venv::{Result, VirtualEnv};
+use xshell_venv::{Result, Shell, VirtualEnv};
 
 const CODE: &str = r#"
 import os
