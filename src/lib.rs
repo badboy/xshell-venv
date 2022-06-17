@@ -95,6 +95,7 @@ fn create_venv(sh: &Shell, path: &Path) -> Result<(), Error> {
 }
 
 fn find_directory(name: &str) -> PathBuf {
+    #[allow(clippy::never_loop)]
     let mut venv_dir = loop {
         // May be set by the user.
         if let Ok(target_dir) = env::var("CARGO_TARGET_DIR") {
@@ -136,7 +137,7 @@ fn find_directory(name: &str) -> PathBuf {
 
     let name = format!("venv-{name}");
     venv_dir.push(&name);
-    return venv_dir;
+    venv_dir
 }
 
 impl<'a> VirtualEnv<'a> {
