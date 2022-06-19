@@ -307,3 +307,28 @@ impl<'a> VirtualEnv<'a> {
         Ok(py.read()?)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn deactivate_on_drop() {
+        let sh = Shell::new().unwrap();
+        let script = "import sys; print(sys.prefix == sys.base_prefix)";
+
+        let out = cmd!(sh, "python3 -c {script}").read().unwrap();
+        assert_eq!("True", out);
+
+        {
+            let venv = VirtualEnv::new(&sh, "deactivate_on_drop").unwrap();
+
+            let out = venv.run(script).unwrap();
+            assert_eq!("False", out);
+        }
+
+        let out = cmd!(sh, "python3 -c {script}").read().unwrap();
+        assert_eq!("True", out);
+    }
+}
