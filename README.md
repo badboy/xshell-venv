@@ -16,7 +16,7 @@
 ```rust
 use xshell_venv::{Shell, VirtualEnv};
 
-let sh = xshell::Shell::new()?;
+let sh = Shell::new()?;
 let venv = VirtualEnv::new(&sh, "py3")?;
 
 venv.run("print('Hello World!')")?; // "Hello World!"

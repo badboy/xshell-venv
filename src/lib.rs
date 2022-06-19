@@ -42,11 +42,10 @@ pub use error::{Error, Result};
 /// ## Example
 ///
 /// ```rust
-/// use xshell;
-/// use xshell_venv::VirtualEnv;
+/// use xshell_venv::{Shell, VirtualEnv};
 ///
 /// # fn main() -> xshell_venv::Result<()> {
-/// let sh = xshell::Shell::new()?;
+/// let sh = Shell::new()?;
 /// let venv = VirtualEnv::new(&sh, "py3")?;
 ///
 /// venv.run("print('Hello World!')")?; // "Hello World!"
@@ -145,7 +144,7 @@ impl<'a> VirtualEnv<'a> {
     ///
     /// This creates a new environment or reuses an existing one.
     /// Preserves the environment across calls and makes it available for all other commands
-    /// within the same [`xshell::Shell`].
+    /// within the same [`Shell`].
     ///
     /// This will try to build a path based on the following environment variables:
     ///
@@ -161,9 +160,9 @@ impl<'a> VirtualEnv<'a> {
     ///
     /// ```
     /// # use xshell;
-    /// # use xshell_venv::VirtualEnv;
+    /// # use xshell_venv::{Shell, VirtualEnv};
     /// # fn main() -> xshell_venv::Result<()> {
-    /// let sh = xshell::Shell::new()?;
+    /// let sh = Shell::new()?;
     /// let venv = VirtualEnv::new(&sh, "py3")?;
     /// # Ok(())
     /// # }
@@ -247,13 +246,13 @@ impl<'a> VirtualEnv<'a> {
     /// let sh = Shell::new()?;
     /// let venv = VirtualEnv::new(&sh, "py3")?;
     ///
-    /// venv.pip_install("flake8==3.0.0")?;
+    /// venv.pip_install("flake8==3.9.2")?;
     /// let output = venv.run_module("flake8", &["--version"])?;
-    /// assert!(output.contains("3.0.0"));
+    /// assert!(output.contains("3.9.2"), "Expected `3.9.2` in output. Got: {}", output);
     ///
     /// venv.pip_upgrade("flake8")?;
     /// let output = venv.run_module("flake8", &["--version"])?;
-    /// assert!(!output.contains("3.0.0"));
+    /// assert!(!output.contains("3.9.2"), "Expected `3.9.2` NOT in output. Got: {}", output);
     /// # Ok(())
     /// # }
     /// ```
