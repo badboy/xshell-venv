@@ -314,6 +314,21 @@ mod test {
 
     #[cfg(unix)]
     #[test]
+    fn multiple_venv() {
+        let sh = Shell::new().unwrap();
+        let script = "import sys; print(sys.prefix)";
+
+        let venv1 = VirtualEnv::new(&sh, "multiple_venv-1").unwrap();
+        let out1 = venv1.run(script).unwrap();
+
+        let venv2 = VirtualEnv::new(&sh, "multiple_venv-2").unwrap();
+        let out2 = venv2.run(script).unwrap();
+
+        assert_ne!(out1, out2);
+    }
+
+    #[cfg(unix)]
+    #[test]
     fn deactivate_on_drop() {
         let sh = Shell::new().unwrap();
         let script = "import sys; print(sys.prefix == sys.base_prefix)";
