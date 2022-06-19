@@ -308,11 +308,10 @@ impl<'a> VirtualEnv<'a> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(unix, test))]
 mod test {
     use super::*;
 
-    #[cfg(unix)]
     #[test]
     fn multiple_venv() {
         let sh = Shell::new().unwrap();
@@ -327,7 +326,6 @@ mod test {
         assert_ne!(out1, out2);
     }
 
-    #[cfg(unix)]
     #[test]
     fn deactivate_on_drop() {
         let sh = Shell::new().unwrap();
