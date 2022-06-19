@@ -18,7 +18,11 @@ fn main() -> Result<()> {
     // You can run individual modules (`python -m $module`).
     // To demonstrate we call `pip`, which should exist.
     let pip_version = venv.run_module("pip", &["--version"])?;
-    assert!(pip_version.contains("pip "));
+    assert!(
+        pip_version.contains("pip "),
+        "Expected `pip` in the output. Got: {}",
+        pip_version
+    );
 
     // We can run code as well easily.
     // These are run as adhoc scripts,
