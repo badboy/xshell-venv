@@ -23,10 +23,17 @@ mod error;
 use std::env;
 use std::path::{Path, PathBuf};
 
+use xshell::PushEnv;
 pub use xshell::Shell;
-use xshell::{cmd, PushEnv};
 
 pub use error::{Error, Result};
+
+// xshell has no shell-wide `env_remove`, so we do it for every command.
+macro_rules! cmd {
+    ($sh:expr, $cmd:literal) => {{
+        xshell::cmd!($sh, $cmd).env_remove("PYTHONHOME")
+    }};
+}
 
 /// A Python virtual environment.
 ///
@@ -60,22 +67,22 @@ pub struct VirtualEnv<'a> {
 fn guess_python(sh: &Shell) -> Result<&'static str, Error> {
     #[cfg(windows)]
     {
-        if cmd!(sh, "python3.exe --version").run().is_ok() {
+        if xshell::cmd!(sh, "python3.exe --version").run().is_ok() {
             return Ok("python3.exe");
         }
 
-        if let Ok(output) = cmd!(sh, "python.exe --version").read() {
+        if let Ok(output) = xshell::cmd!(sh, "python.exe --version").read() {
             if output.contains("Python 3.") {
                 return Ok("python.exe");
             }
         }
     }
 
-    if cmd!(sh, "python3 --version").run().is_ok() {
+    if xshell::cmd!(sh, "python3 --version").run().is_ok() {
         return Ok("python3");
     }
 
-    if let Ok(output) = cmd!(sh, "python --version").read() {
+    if let Ok(output) = xshell::cmd!(sh, "python --version").read() {
         if output.contains("Python 3.") {
             return Ok("python");
         }
@@ -88,7 +95,7 @@ fn create_venv(sh: &Shell, path: &Path) -> Result<(), Error> {
     let pybin = path.join("bin").join("python");
     if !pybin.exists() {
         let python = guess_python(sh)?;
-        cmd!(sh, "{python} -m venv {path}").run()?;
+        xshell::cmd!(sh, "{python} -m venv {path}").run()?;
     }
     Ok(())
 }
@@ -202,7 +209,6 @@ impl<'a> VirtualEnv<'a> {
         let mut env = vec![];
         env.push(shell.push_env("VIRTUAL_ENV", format!("{}", venv_dir.display())));
         env.push(shell.push_env("PATH", path));
-        env.push(shell.push_env("PYTHONHOME", ""));
 
         Ok(VirtualEnv { shell, _env: env })
     }
@@ -228,7 +234,7 @@ impl<'a> VirtualEnv<'a> {
     /// # }
     /// ```
     pub fn pip_install(&self, package: &str) -> Result<()> {
-        cmd!(self.shell, "pip install {package}").run()?;
+        cmd!(self.shell, "pip3 install {package}").run()?;
         Ok(())
     }
 
@@ -257,7 +263,7 @@ impl<'a> VirtualEnv<'a> {
     /// # }
     /// ```
     pub fn pip_upgrade(&self, package: &str) -> Result<()> {
-        cmd!(self.shell, "pip install --upgrade {package}").run()?;
+        cmd!(self.shell, "pip3 install --upgrade {package}").run()?;
         Ok(())
     }
 
