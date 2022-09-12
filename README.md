@@ -22,6 +22,14 @@ let venv = VirtualEnv::new(&sh, "py3")?;
 venv.run("print('Hello World!')")?; // "Hello World!"
 ```
 
+## Requirements
+
+* Python 3
+  * On Windows we look for `python3.exe` or `python.exe`
+  * Otherwise we look for `python3` or `python`
+* The `venv` package
+  * This might be available as `python3-venv` or under a similar name.
+
 ## License
 
 [MIT](LICENSE).
