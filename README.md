@@ -29,6 +29,8 @@ venv.run("print('Hello World!')")?; // "Hello World!"
   * Otherwise we look for `python3` or `python`
 * The `venv` package
   * This might be available as `python3-venv` or under a similar name.
+    Double check your packages. E.g. on Ubuntu Python 3.8 is available as `python3.8`
+    and the corresponding `venv` package is named `python3.8-venv`.
 
 ## License
 
