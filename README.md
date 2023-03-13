@@ -3,7 +3,7 @@
 [![crates.io](https://img.shields.io/crates/v/xshell-venv.svg?style=flat-square)](https://crates.io/crates/xshell-venv)
 [![docs.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/xshell-venv)
 [![License: MIT](https://img.shields.io/github/license/badboy/xshell-venv?style=flat-square)](LICENSE)
-[![Build Status](https://img.shields.io/github/workflow/status/badboy/xshell-venv/Test/main?style=flat-square)](https://github.com/badboy/xshell-venv/actions/workflows/test.yml)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/badboy/xshell-venv/test.yml?style=flat-square)](https://github.com/badboy/xshell-venv/actions/workflows/test.yml)
 
 `xshell-venv` manages your Python virtual environments in code.
 
