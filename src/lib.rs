@@ -21,8 +21,10 @@
 mod error;
 
 use std::env;
+use std::fs::File;
 use std::path::{Path, PathBuf};
 
+use fd_lock::RwLock;
 use xshell::PushEnv;
 pub use xshell::Shell;
 
@@ -92,11 +94,26 @@ fn guess_python(sh: &Shell) -> Result<&'static str, Error> {
 }
 
 fn create_venv(sh: &Shell, path: &Path) -> Result<(), Error> {
-    let pybin = path.join("bin").join("python");
+    // First create a lock file, so that multiple runs cannot overlap.
+    let lock_path = path.join("xshell-venv.lock");
+    sh.create_dir(path)?;
+    let mut f = RwLock::new(File::create(&lock_path)?);
+    let lock = f.write()?;
+
+    let python = guess_python(sh)?;
+
+    #[cfg(windows)]
+    let pybin = path.join("Scripts").join(python);
+    #[cfg(not(windows))]
+    let pybin = path.join("bin").join(python);
     if !pybin.exists() {
-        let python = guess_python(sh)?;
         xshell::cmd!(sh, "{python} -m venv {path}").run()?;
     }
+
+    // Work is done. Drop the lock.
+    sh.remove_path(lock_path)?;
+    drop(lock);
+
     Ok(())
 }
 
@@ -203,8 +220,19 @@ impl<'a> VirtualEnv<'a> {
     pub fn with_path(shell: &'a Shell, venv_dir: &Path) -> Result<VirtualEnv<'a>, Error> {
         create_venv(shell, venv_dir)?;
 
-        let path = env::var("PATH").unwrap_or_else(|_| "/bin:/usr/bin".to_string());
-        let path = format!("{}/bin:{}", venv_dir.display(), path);
+        #[cfg(windows)]
+        const DEFAULT_PATH: &str = ""; // FIXME: Maybe actually HAVE a default path?
+        #[cfg(not(windows))]
+        const DEFAULT_PATH: &str = "/bin:/usr/bin";
+
+        #[cfg(not(windows))]
+        let bin_dir = venv_dir.join("bin");
+        #[cfg(windows)]
+        let bin_dir = venv_dir.join("Scripts");
+
+        let path = env::var("PATH").unwrap_or_else(|_| DEFAULT_PATH.to_string());
+        let path = env::split_paths(&path);
+        let path = env::join_paths([bin_dir].into_iter().chain(path)).unwrap();
 
         let mut env = vec![];
         env.push(shell.push_env("VIRTUAL_ENV", format!("{}", venv_dir.display())));
