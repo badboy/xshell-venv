@@ -21,12 +21,17 @@
 mod error;
 
 use std::env;
+use std::fs::File;
 use std::path::{Path, PathBuf};
 
+use fd_lock::RwLock;
 use xshell::PushEnv;
 pub use xshell::Shell;
 
 pub use error::{Error, Result};
+
+#[cfg(not(windows))]
+static MICROVENV_CODE: &str = include_str!("microvenv.py");
 
 // xshell has no shell-wide `env_remove`, so we do it for every command.
 macro_rules! cmd {
@@ -91,12 +96,48 @@ fn guess_python(sh: &Shell) -> Result<&'static str, Error> {
     Err("couldn't find Python 3 in $PATH".into())
 }
 
+#[cfg(not(windows))]
 fn create_venv(sh: &Shell, path: &Path) -> Result<(), Error> {
+    // First create a lock file, so that multiple runs cannot overlap.
+    let lock_path = path.join("xshell-venv.lock");
+    sh.create_dir(path)?;
+    let mut f = RwLock::new(File::create(lock_path).unwrap());
+    let lock = f.write().unwrap();
+
+    let pybin = path.join("bin").join("python");
+    if !pybin.exists() {
+        let python = guess_python(sh)?;
+        xshell::cmd!(sh, "{python} -c {MICROVENV_CODE} {path}").run()?;
+        // microvenv skips pip.
+        // `ensurepip` exists in the Python distribution, so let's use it.
+        xshell::cmd!(sh, "{path}/bin/python -m ensurepip").run()?;
+    }
+
+    // Work is done. Drop the lock.
+    drop(lock);
+
+    Ok(())
+}
+
+// microvenv.py doesn't work on Windows.
+// We fallback to simply using Python's `venv` module again.
+#[cfg(windows)]
+fn create_venv(sh: &Shell, path: &Path) -> Result<(), Error> {
+    // First create a lock file, so that multiple runs cannot overlap.
+    let lock_path = path.join("xshell-venv.lock");
+    sh.create_dir(path)?;
+    let mut f = RwLock::new(File::create(lock_path).unwrap());
+    let lock = f.write().unwrap();
+
     let pybin = path.join("bin").join("python");
     if !pybin.exists() {
         let python = guess_python(sh)?;
         xshell::cmd!(sh, "{python} -m venv {path}").run()?;
     }
+
+    // Work is done. Drop the lock.
+    drop(lock);
+
     Ok(())
 }
 
