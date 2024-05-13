@@ -7,7 +7,7 @@ description = "xshell-venv manages your Python virtual environments in code."
 repository = "https://github.com/badboy/xshell-venv"
 
 [dependencies]
-fd-lock = "3.0.10"
+fd-lock = "4.0.0"
 xshell = "0.2"
 
 [workspace]
