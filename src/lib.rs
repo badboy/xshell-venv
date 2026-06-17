@@ -22,9 +22,9 @@ mod error;
 
 use std::env;
 use std::fs::File;
+use std::io;
 use std::path::{Path, PathBuf};
 
-use fd_lock::RwLock;
 use xshell::PushEnv;
 pub use xshell::Shell;
 
@@ -97,7 +97,7 @@ fn create_venv(sh: &Shell, path: &Path) -> Result<(), Error> {
     // First create a lock file, so that multiple runs cannot overlap.
     let lock_path = path.join("xshell-venv.lock");
     sh.create_dir(path)?;
-    let mut f = RwLock::new(File::create(&lock_path)?);
+    let mut f = FileLock::new(File::create(&lock_path)?);
     let lock = f.write()?;
 
     let python = guess_python(sh)?;
@@ -339,6 +339,41 @@ impl<'a> VirtualEnv<'a> {
     pub fn run_module(&self, module: &str, args: &[&str]) -> Result<String> {
         let py = cmd!(self.shell, "python -m {module} {args...}");
         Ok(py.read()?)
+    }
+}
+
+/// Advisory writer lock for files.
+///
+/// Wrapper around [`File::lock`], that calls [`File::unlock`] on drop.
+pub struct FileLock {
+    file: File,
+}
+
+impl FileLock {
+    pub fn new(file: File) -> Self {
+        FileLock { file }
+    }
+
+    pub fn write(&mut self) -> io::Result<FileLockWriteGuard<'_>> {
+        self.file.lock()?;
+        Ok(FileLockWriteGuard::new(&mut self.file))
+    }
+}
+
+pub struct FileLockWriteGuard<'lock> {
+    guard: &'lock mut File,
+}
+
+impl<'lock> FileLockWriteGuard<'lock> {
+    fn new(guard: &'lock mut File) -> Self {
+        FileLockWriteGuard { guard }
+    }
+}
+
+impl Drop for FileLockWriteGuard<'_> {
+    #[inline]
+    fn drop(&mut self) {
+        let _ = self.guard.unlock().ok();
     }
 }
 
