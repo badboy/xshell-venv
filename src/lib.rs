@@ -22,7 +22,6 @@ mod error;
 
 use std::env;
 use std::fs::File;
-use std::io;
 use std::path::{Path, PathBuf};
 
 use xshell::PushEnv;
@@ -63,7 +62,14 @@ macro_rules! cmd {
 /// ```
 pub struct VirtualEnv<'a> {
     shell: &'a Shell,
+    lock: File,
     _env: Vec<PushEnv<'a>>,
+}
+
+impl Drop for VirtualEnv<'_> {
+    fn drop(&mut self) {
+        self.lock.unlock().unwrap();
+    }
 }
 
 fn guess_python(sh: &Shell) -> Result<&'static str, Error> {
@@ -93,12 +99,12 @@ fn guess_python(sh: &Shell) -> Result<&'static str, Error> {
     Err("couldn't find Python 3 in $PATH".into())
 }
 
-fn create_venv(sh: &Shell, path: &Path) -> Result<(), Error> {
+fn create_venv(sh: &Shell, path: &Path) -> Result<File, Error> {
     // First create a lock file, so that multiple runs cannot overlap.
     let lock_path = path.join("xshell-venv.lock");
     sh.create_dir(path)?;
-    let mut f = FileLock::new(File::create(&lock_path)?);
-    let lock = f.write()?;
+    let lock_file = File::create(&lock_path)?;
+    lock_file.lock()?;
 
     let python = guess_python(sh)?;
 
@@ -110,11 +116,7 @@ fn create_venv(sh: &Shell, path: &Path) -> Result<(), Error> {
         xshell::cmd!(sh, "{python} -m venv {path}").run()?;
     }
 
-    // Work is done. Drop the lock.
-    sh.remove_path(lock_path)?;
-    drop(lock);
-
-    Ok(())
+    Ok(lock_file)
 }
 
 fn find_directory(name: &str) -> PathBuf {
@@ -218,7 +220,7 @@ impl<'a> VirtualEnv<'a> {
     /// # }
     /// ```
     pub fn with_path(shell: &'a Shell, venv_dir: &Path) -> Result<VirtualEnv<'a>, Error> {
-        create_venv(shell, venv_dir)?;
+        let lock = create_venv(shell, venv_dir)?;
 
         #[cfg(windows)]
         const DEFAULT_PATH: &str = ""; // FIXME: Maybe actually HAVE a default path?
@@ -238,7 +240,7 @@ impl<'a> VirtualEnv<'a> {
         env.push(shell.push_env("VIRTUAL_ENV", format!("{}", venv_dir.display())));
         env.push(shell.push_env("PATH", path));
 
-        Ok(VirtualEnv { shell, _env: env })
+        Ok(VirtualEnv { shell, lock, _env: env })
     }
 
     /// Install a Python package in this virtual environment.
@@ -262,7 +264,7 @@ impl<'a> VirtualEnv<'a> {
     /// # }
     /// ```
     pub fn pip_install(&self, package: &str) -> Result<()> {
-        cmd!(self.shell, "pip3 install {package}").run()?;
+        cmd!(self.shell, "pip3 install --debug {package}").run()?;
         Ok(())
     }
 
@@ -291,7 +293,7 @@ impl<'a> VirtualEnv<'a> {
     /// # }
     /// ```
     pub fn pip_upgrade(&self, package: &str) -> Result<()> {
-        cmd!(self.shell, "pip3 install --upgrade {package}").run()?;
+        cmd!(self.shell, "pip3 install --debug --upgrade {package}").run()?;
         Ok(())
     }
 
@@ -313,6 +315,7 @@ impl<'a> VirtualEnv<'a> {
     /// # }
     /// ```
     pub fn run(&self, code: &str) -> Result<String> {
+        dbg!("run", &self.lock, code);
         let py = cmd!(self.shell, "python");
 
         Ok(py.stdin(code).read()?)
@@ -339,41 +342,6 @@ impl<'a> VirtualEnv<'a> {
     pub fn run_module(&self, module: &str, args: &[&str]) -> Result<String> {
         let py = cmd!(self.shell, "python -m {module} {args...}");
         Ok(py.read()?)
-    }
-}
-
-/// Advisory writer lock for files.
-///
-/// Wrapper around [`File::lock`], that calls [`File::unlock`] on drop.
-pub struct FileLock {
-    file: File,
-}
-
-impl FileLock {
-    pub fn new(file: File) -> Self {
-        FileLock { file }
-    }
-
-    pub fn write(&mut self) -> io::Result<FileLockWriteGuard<'_>> {
-        self.file.lock()?;
-        Ok(FileLockWriteGuard::new(&mut self.file))
-    }
-}
-
-pub struct FileLockWriteGuard<'lock> {
-    guard: &'lock mut File,
-}
-
-impl<'lock> FileLockWriteGuard<'lock> {
-    fn new(guard: &'lock mut File) -> Self {
-        FileLockWriteGuard { guard }
-    }
-}
-
-impl Drop for FileLockWriteGuard<'_> {
-    #[inline]
-    fn drop(&mut self) {
-        let _ = self.guard.unlock().ok();
     }
 }
 
