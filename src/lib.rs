@@ -62,6 +62,7 @@ macro_rules! cmd {
 /// ```
 pub struct VirtualEnv<'a> {
     shell: &'a Shell,
+    dir: PathBuf,
     lock: File,
     _env: Vec<PushEnv<'a>>,
 }
@@ -240,7 +241,17 @@ impl<'a> VirtualEnv<'a> {
         env.push(shell.push_env("VIRTUAL_ENV", format!("{}", venv_dir.display())));
         env.push(shell.push_env("PATH", path));
 
-        Ok(VirtualEnv { shell, lock, _env: env })
+        Ok(VirtualEnv {
+            shell,
+            lock,
+            dir: venv_dir.to_path_buf(),
+            _env: env,
+        })
+    }
+
+    /// Get the path of virtual environment directory.
+    pub fn dir(&self) -> &Path {
+        &self.dir
     }
 
     /// Install a Python package in this virtual environment.
