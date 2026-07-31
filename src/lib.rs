@@ -70,7 +70,7 @@ pub struct VirtualEnv<'a> {
 fn guess_python(sh: &Shell) -> Result<&'static str, Error> {
     #[cfg(windows)]
     {
-        if xshell::cmd!(sh, "python3.exe --version").run().is_ok() {
+        if xshell::cmd!(sh, "python3.exe --version").read().is_ok() {
             return Ok("python3.exe");
         }
 
@@ -81,7 +81,7 @@ fn guess_python(sh: &Shell) -> Result<&'static str, Error> {
         }
     }
 
-    if xshell::cmd!(sh, "python3 --version").run().is_ok() {
+    if xshell::cmd!(sh, "python3 --version").read().is_ok() {
         return Ok("python3");
     }
 
