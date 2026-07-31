@@ -121,27 +121,14 @@ fn create_venv(sh: &Shell, path: &Path) -> Result<(), Error> {
 fn find_directory(name: &str) -> PathBuf {
     #[allow(clippy::never_loop)]
     let mut venv_dir = loop {
-        // May be set by the user.
-        if let Ok(target_dir) = env::var("CARGO_TARGET_DIR") {
-            break PathBuf::from(target_dir);
-        }
-
-        // Find the `target/<arch>?/<profile> directory.`
-        // `OUT_DIR` is usually something like
-        // target/<arch>/debug/build/$cratename-$hash/out/,
-        // so we strip out the last 3 ancestors.
-        // This will be correct for plain crates, for workspaces
-        // and even if the `TARGET_DIR` is not nested within the workspace.
-        // Putting it there also means the venv stays available across builds.
+        // xshell-venv wants to be a good citizen,
+        // so by default it now writes into the folder it's supposed to write: `OUT_DIR`.
+        //
+        // This way different crates can depend on same-named venvs, that are entirely separate, as
+        // they should be.
+        // No more trying to find the directory and sharing that across multiple crates.
         if let Ok(out_dir) = env::var("OUT_DIR") {
-            let path = Path::new(&out_dir);
-            let path = path
-                .parent()
-                .and_then(|p| p.parent())
-                .and_then(|p| p.parent());
-            if let Some(out_dir) = path {
-                break PathBuf::from(out_dir);
-            }
+            break PathBuf::from(out_dir);
         }
 
         // Create a `target/$venv` path next to where the project's `Cargo.toml` is located.
@@ -152,6 +139,11 @@ fn find_directory(name: &str) -> PathBuf {
             let mut p = PathBuf::from(manifest_dir);
             p.push("target");
             break p;
+        }
+
+        // May be set by the user.
+        if let Ok(target_dir) = env::var("CARGO_TARGET_DIR") {
+            break PathBuf::from(target_dir);
         }
 
         // As a last resort we use the host's temporary directory,
