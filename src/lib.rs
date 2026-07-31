@@ -257,9 +257,9 @@ impl<'a> VirtualEnv<'a> {
     /// let sh = Shell::new()?;
     /// let venv = VirtualEnv::new(&sh, "py3")?;
     ///
-    /// venv.pip_install("flake8")?;
-    /// let output = venv.run_module("flake8", &["--version"])?;
-    /// assert!(output.contains("flake"));
+    /// venv.pip_install("ty")?;
+    /// let output = venv.run_module("ty", &["--version"])?;
+    /// assert!(output.contains("ty"));
     /// # Ok(())
     /// # }
     /// ```
@@ -282,13 +282,13 @@ impl<'a> VirtualEnv<'a> {
     /// let sh = Shell::new()?;
     /// let venv = VirtualEnv::new(&sh, "py3")?;
     ///
-    /// venv.pip_install("flake8==3.9.2")?;
-    /// let output = venv.run_module("flake8", &["--version"])?;
-    /// assert!(output.contains("3.9.2"), "Expected `3.9.2` in output. Got: {}", output);
+    /// venv.pip_install("ty==0.0.64")?;
+    /// let output = venv.run_module("ty", &["--version"])?;
+    /// assert!(output.contains("0.0.64"), "Expected `0.0.64` in output. Got: {}", output);
     ///
-    /// venv.pip_upgrade("flake8")?;
-    /// let output = venv.run_module("flake8", &["--version"])?;
-    /// assert!(!output.contains("3.9.2"), "Expected `3.9.2` NOT in output. Got: {}", output);
+    /// venv.pip_upgrade("ty")?;
+    /// let output = venv.run_module("ty", &["--version"])?;
+    /// assert!(!output.contains("0.0.64"), "Expected `0.0.64` NOT in output. Got: {}", output);
     /// # Ok(())
     /// # }
     /// ```
