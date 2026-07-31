@@ -112,8 +112,8 @@ fn create_venv(sh: &Shell, path: &Path) -> Result<(), Error> {
     }
 
     // Work is done. Drop the lock.
-    sh.remove_path(lock_path)?;
     drop(lock);
+    sh.remove_path(lock_path)?;
 
     Ok(())
 }
