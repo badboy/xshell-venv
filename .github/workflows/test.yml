@@ -30,7 +30,6 @@ jobs:
         fetch-depth: 0
         persist-credentials: false
     - uses: dtolnay/rust-toolchain@stable
-    - uses: Swatinem/rust-cache@v2
     - run: cargo test --features debug-trace
     - run: cargo run -p example
     - run: |
