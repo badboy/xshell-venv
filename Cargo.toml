@@ -15,3 +15,8 @@ members = [
   ".",
   "example"
 ]
+
+[features]
+default = []
+# Enable stderr logging for internals
+debug-trace = []
