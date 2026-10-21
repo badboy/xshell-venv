@@ -4,5 +4,13 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
+default-run = "example"
+
+[dependencies]
+xshell-venv = { path = ".." }
+
 [build-dependencies]
 xshell-venv = { path = ".." }
+
+[features]
+debug-trace = ["xshell-venv/debug-trace"]
